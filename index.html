@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aziziyah Room Expense Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.3s ease-out forwards',
+                        'bounce-in': 'bounceIn 0.5s',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            'from': { opacity: '0', transform: 'translateY(10px)' },
+                            'to': { opacity: '1', transform: 'translateY(0)' }
+                        },
+                        bounceIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '50%': { transform: 'scale(1.05)', opacity: '1' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Custom checkbox style */
+        .custom-checkbox input:checked + .checkmark {
+            background-color: #0ea5e9;
+            border-color: #0ea5e9;
+        }
+        
+        .custom-checkbox input:checked + .checkmark:after {
+            display: block;
+        }
+        
+        .custom-checkbox .checkmark:after {
+            content: "";
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 5px;
+            height: 10px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            display: none;
+        }
+        
+        /* Floating action button animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .floating-btn {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Gradient background */
+        .gradient-bg {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #bae6fd 100%);
+        }
+        
+        /* Shimmer effect for loading */
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Floating action button for quick add -->
+        <div class="fixed bottom-6 right-6 z-10">
+            <button id="quickAddExpenseBtn" class="floating-btn bg-primary-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center hover:bg-primary-700 transition-all">
+                <i class="fas fa-plus text-xl"></i>
+            </button>
+        </div>
+        
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <div class="inline-block bg-white/80 backdrop-blur-sm px-6 py-3 rounded-full shadow-sm mb-4">
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-400 bg-clip-text text-transparent mb-1">Aziziah Room Expense Splitter</h1>
+            </div>
+            <p class="text-gray-600 max-w-lg mx-auto">Track and split expenses among your roommates easily and fairly. Perfect for shared living situations!</p>
+        </header>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 border border-white">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-primary-100 text-primary-600 mr-4">
+                        <i class="fas fa-users text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Roommates</p>
+                        <h3 class="text-xl font-semibold" id="membersCount">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 border border-white">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-green-100 text-green-600 mr-4">
+                        <i class="fas fa-receipt text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Total Expenses</p>
+                        <h3 class="text-xl font-semibold" id="totalExpensesCount">SAR0.00</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-4 border border-white">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-lg bg-amber-100 text-amber-600 mr-4">
+                        <i class="fas fa-hand-holding-usd text-xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500">Active Debts</p>
+                        <h3 class="text-xl font-semibold" id="activeDebtsCount">0</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Column - Members and Add Expense -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Members Section -->
+                <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-white">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-users mr-2 text-primary-600"></i>
+                            Roommates
+                        </h2>
+                        <button id="addMemberBtn" class="text-primary-600 hover:text-primary-800 transition-colors">
+                            <i class="fas fa-plus-circle text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="membersList" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- Members will be added here -->
+                        <div class="text-center py-4 text-gray-400">
+                            <i class="fas fa-user-friends text-3xl mb-2"></i>
+                            <p>No roommates added yet</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Add Member Form (Hidden by default) -->
+                    <div id="addMemberForm" class="mt-4 hidden animate-bounce-in">
+                        <div class="flex">
+                            <input type="text" id="newMemberName" placeholder="Roommate name"
+                                   class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                   autocomplete="off">
+                            <button id="saveMemberBtn" class="bg-primary-600 text-white px-4 py-2 rounded-r-lg hover:bg-primary-700 transition-colors flex items-center">
+                                <i class="fas fa-check mr-1"></i> Add
+                            </button>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Add all your roommates to get started</p>
+                    </div>
+                </div>
+                
+                <!-- Quick Add Expense (Mobile only) -->
+                <div class="lg:hidden bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-white">
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                        <i class="fas fa-plus-circle mr-2 text-primary-600"></i>
+                        Quick Add
+                    </h2>
+                    <form id="quickExpenseForm" class="space-y-3">
+                        <div class="flex items-center border-b border-gray-200 py-2">
+                            <i class="fas fa-tag text-gray-400 mr-2"></i>
+                            <input type="text" id="quickExpenseDescription" required
+                                   class="w-full px-2 py-1 focus:outline-none" 
+                                   placeholder="What was it for?">
+                        </div>
+                        <div class="flex items-center border-b border-gray-200 py-2">
+                            <i class="fas fa-dollar-sign text-gray-400 mr-2"></i>
+                            <input type="number" id="quickExpenseAmount" step="0.01" min="0.01" required
+                                   class="w-full px-2 py-1 focus:outline-none" 
+                                   placeholder="Amount">
+                        </div>
+                        <button type="submit" class="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors">
+                            Add Expense
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Right Column - Expenses and Summary -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Expenses List -->
+                <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-white">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-receipt mr-2 text-primary-600"></i>
+                            Recent Expenses
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <button id="filterAll" class="text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded">All</button>
+                            <button id="filterThisMonth" class="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">This Month</button>
+                        </div>
+                    </div>
+                    
+                    <div id="expensesList" class="space-y-3 max-h-[500px] overflow-y-auto">
+                        <!-- Expenses will be added here -->
+                        <div class="text-center py-10 text-gray-400" id="noExpensesMessage">
+                            <i class="fas fa-receipt text-4xl mb-2"></i>
+                            <p>No expenses recorded yet</p>
+                            <p class="text-sm mt-1">Add your first expense to get started</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary Section -->
+                <div class="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm p-6 border border-white">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                            <i class="fas fa-chart-pie mr-2 text-primary-600"></i>
+                            Summary & Settlements
+                        </h2>
+                        <button id="refreshSummary" class="text-primary-600 hover:text-primary-800">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <div id="summaryList" class="space-y-3">
+                        <!-- Summary will be added here -->
+                        <div class="text-center py-6 text-gray-400">
+                            <i class="fas fa-chart-bar text-3xl mb-2"></i>
+                            <p>Add expenses to see the summary</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Expense Modal -->
+    <div id="expenseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 animate-bounce-in">
+            <div class="flex justify-between items-center border-b p-4">
+                <h3 class="text-lg font-semibold text-gray-800">Add New Expense</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="expenseForm" class="p-4 space-y-4">
+                <div>
+                    <label for="expenseDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-tag text-gray-400"></i>
+                        </div>
+                        <input type="text" id="expenseDescription" required
+                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                               placeholder="What was it for?">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="expenseAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-dollar-sign text-gray-400"></i>
+                        </div>
+                        <input type="number" id="expenseAmount" step="0.01" min="0.01" required
+                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                               placeholder="0.00">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="expenseDate" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-calendar text-gray-400"></i>
+                        </div>
+                        <input type="date" id="expenseDate"
+                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="paidBy" class="block text-sm font-medium text-gray-700 mb-1">Paid by</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <select id="paidBy" required
+                                class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent appearance-none">
+                            <!-- Members will be added here -->
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                            <i class="fas fa-chevron-down text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Split between</label>
+                    <div id="splitBetween" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-lg">
+                        <!-- Members checkboxes will be added here -->
+                    </div>
+                </div>
+                
+                <div class="flex space-x-3 pt-2">
+                    <button type="submit" class="flex-1 bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i> Save Expense
+                    </button>
+                    <button type="button" id="cancelExpense" class="bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize data
+            let members = JSON.parse(localStorage.getItem('expenseSplitterMembers')) || [];
+            let expenses = JSON.parse(localStorage.getItem('expenseSplitterExpenses')) || [];
+            
+            // DOM elements
+            const membersList = document.getElementById('membersList');
+            const addMemberBtn = document.getElementById('addMemberBtn');
+            const addMemberForm = document.getElementById('addMemberForm');
+            const newMemberName = document.getElementById('newMemberName');
+            const saveMemberBtn = document.getElementById('saveMemberBtn');
+            const paidBySelect = document.getElementById('paidBy');
+            const splitBetween = document.getElementById('splitBetween');
+            const expenseForm = document.getElementById('expenseForm');
+            const quickExpenseForm = document.getElementById('quickExpenseForm');
+            const expensesList = document.getElementById('expensesList');
+            const noExpensesMessage = document.getElementById('noExpensesMessage');
+            const summaryList = document.getElementById('summaryList');
+            const membersCount = document.getElementById('membersCount');
+            const totalExpensesCount = document.getElementById('totalExpensesCount');
+            const activeDebtsCount = document.getElementById('activeDebtsCount');
+            const filterAll = document.getElementById('filterAll');
+            const filterThisMonth = document.getElementById('filterThisMonth');
+            const refreshSummary = document.getElementById('refreshSummary');
+            const expenseModal = document.getElementById('expenseModal');
+            const quickAddExpenseBtn = document.getElementById('quickAddExpenseBtn');
+            const closeModal = document.getElementById('closeModal');
+            const cancelExpense = document.getElementById('cancelExpense');
+            
+            // Color palette for member avatars
+            const avatarColors = [
+                'bg-primary-100 text-primary-800',
+                'bg-green-100 text-green-800',
+                'bg-amber-100 text-amber-800',
+                'bg-purple-100 text-purple-800',
+                'bg-pink-100 text-pink-800',
+                'bg-indigo-100 text-indigo-800',
+                'bg-cyan-100 text-cyan-800',
+                'bg-rose-100 text-rose-800'
+            ];
+            
+            // Render functions
+            function renderMembers() {
+                membersList.innerHTML = '';
+                
+                if (members.length === 0) {
+                    membersList.innerHTML = `
+                        <div class="text-center py-4 text-gray-400">
+                            <i class="fas fa-user-friends text-3xl mb-2"></i>
+                            <p>No roommates added yet</p>
+                        </div>
+                    `;
+                    membersCount.textContent = '0';
+                    return;
+                }
+                
+                membersCount.textContent = members.length;
+                
+                members.forEach((member, index) => {
+                    const colorIndex = index % avatarColors.length;
+                    const memberElement = document.createElement('div');
+                    memberElement.className = 'flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors';
+                    memberElement.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3 font-medium">
+                                ${member.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-medium">${member.name}</span>
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 delete-member p-1 rounded-full hover:bg-red-50 transition-colors" data-index="${index}">
+                            <i class="fas fa-trash-alt text-sm"></i>
+                        </button>
+                    `;
+                    membersList.appendChild(memberElement);
+                });
+                
+                // Update dropdowns and checkboxes
+                updateMemberSelections();
+            }
+            
+            function updateMemberSelections() {
+                // Clear existing options
+                paidBySelect.innerHTML = '';
+                splitBetween.innerHTML = '';
+                
+                if (members.length === 0) {
+                    paidBySelect.innerHTML = '<option value="" disabled selected>No roommates</option>';
+                    splitBetween.innerHTML = `
+                        <div class="col-span-2 text-center py-4 text-gray-400">
+                            <i class="fas fa-user-plus text-xl mb-1"></i>
+                            <p class="text-sm">Add roommates first</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Add options to paidBy dropdown
+                members.forEach(member => {
+                    const option = document.createElement('option');
+                    option.value = member.name;
+                    option.textContent = member.name;
+                    paidBySelect.appendChild(option);
+                });
+                
+                // Add checkboxes for split between
+                members.forEach((member, index) => {
+                    const colorIndex = index % avatarColors.length;
+                    const checkboxContainer = document.createElement('label');
+                    checkboxContainer.className = 'flex items-center custom-checkbox cursor-pointer p-2 hover:bg-gray-100 rounded transition-colors';
+                    checkboxContainer.innerHTML = `
+                        <input type="checkbox" name="splitMembers" value="${member.name}" checked
+                                class="hidden">
+                        <span class="checkmark w-5 h-5 border border-gray-300 rounded inline-block relative mr-3"></span>
+                        <div class="w-8 h-8 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center font-medium text-sm mr-2">
+                            ${member.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span>${member.name}</span>
+                    `;
+                    splitBetween.appendChild(checkboxContainer);
+                });
+            }
+            
+            function renderExpenses(filter = 'all') {
+                expensesList.innerHTML = '';
+                
+                if (expenses.length === 0) {
+                    noExpensesMessage.classList.remove('hidden');
+                    totalExpensesCount.textContent = 'SAR0.00';
+                    return;
+                }
+                
+                noExpensesMessage.classList.add('hidden');
+                
+                // Filter expenses
+                let filteredExpenses = [...expenses];
+                if (filter === 'month') {
+                    const now = new Date();
+                    filteredExpenses = expenses.filter(expense => {
+                        const expenseDate = new Date(expense.date || expense.dateAdded);
+                        return expenseDate.getMonth() === now.getMonth() && 
+                               expenseDate.getFullYear() === now.getFullYear();
+                    });
+                }
+                
+                // Calculate total
+                const total = filteredExpenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
+                totalExpensesCount.textContent = `SAR${total.toFixed(2)}`;
+                
+                if (filteredExpenses.length === 0) {
+                    expensesList.innerHTML = `
+                        <div class="text-center py-10 text-gray-400">
+                            <i class="fas fa-receipt text-3xl mb-2"></i>
+                            <p>No expenses this month</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Add expenses
+                filteredExpenses.forEach((expense, index) => {
+                    const expenseElement = document.createElement('div');
+                    expenseElement.className = 'animate-fade-in bg-gray-50 p-4 rounded-lg border border-gray-200 hover:border-primary-300 transition-colors';
+                    
+                    // Calculate per person share
+                    const perPerson = (expense.amount / expense.splitBetween.length).toFixed(2);
+                    
+                    // Format date
+                    const expenseDate = new Date(expense.date || expense.dateAdded);
+                    const formattedDate = expenseDate.toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    });
+                    
+                    expenseElement.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="font-medium text-gray-800">${expense.description}</h3>
+                                <div class="flex items-center text-sm text-gray-500 mt-1">
+                                    <i class="fas fa-user-circle mr-1"></i>
+                                    <span>Paid by <span class="font-medium">${expense.paidBy}</span></span>
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    <span>${formattedDate}</span>
+                                </div>
+                            </div>
+                            <span class="font-bold text-primary-700 text-lg">SAR${parseFloat(expense.amount).toFixed(2)}</span>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-2 text-xs mt-2">
+                            <span class="bg-primary-100 text-primary-800 px-2 py-1 rounded-full flex items-center">
+                                <i class="fas fa-users mr-1"></i> ${expense.splitBetween.length} people
+                            </span>
+                            <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full flex items-center">
+                                <i class="fas fa-share-alt mr-1"></i> SAR${perPerson} each
+                            </span>
+                        </div>
+                        
+                        <div class="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
+                            <div class="text-xs text-gray-500 flex items-center">
+                                <i class="fas fa-users-between-lines mr-1"></i>
+                                Split between: ${expense.splitBetween.join(', ')}
+                            </div>
+                            <button class="text-red-500 hover:text-red-700 text-sm delete-expense p-1 rounded-full hover:bg-red-50 transition-colors" data-index="${expenses.indexOf(expense)}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    expensesList.appendChild(expenseElement);
+                });
+                
+                // Update summary
+                renderSummary();
+            }
+            
+            function renderSummary() {
+                summaryList.innerHTML = '';
+                
+                if (members.length === 0 || expenses.length === 0) {
+                    summaryList.innerHTML = `
+                        <div class="text-center py-6 text-gray-400">
+                            <i class="fas fa-chart-bar text-3xl mb-2"></i>
+                            <p>Add expenses to see the summary</p>
+                        </div>
+                    `;
+                    activeDebtsCount.textContent = '0';
+                    return;
+                }
+                
+                // Calculate balances
+                const balances = calculateBalances();
+                
+                // Count active debts
+                let debtCount = 0;
+                Object.values(balances).forEach(balance => {
+                    if (Math.abs(balance) > 0.01) debtCount++;
+                });
+                activeDebtsCount.textContent = debtCount;
+                
+                // Create summary items
+                members.forEach((member, index) => {
+                    const balance = balances[member.name] || 0;
+                    const colorIndex = index % avatarColors.length;
+                    const balanceElement = document.createElement('div');
+                    balanceElement.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors';
+                    
+                    balanceElement.innerHTML = `
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full ${avatarColors[colorIndex]} flex items-center justify-center mr-3 font-medium">
+                                ${member.name.charAt(0).toUpperCase()}
+                            </div>
+                            <span class="font-medium">${member.name}</span>
+                        </div>
+                        <span class="${balance >= 0 ? 'text-green-600' : 'text-red-600'} font-medium flex items-center">
+                            ${balance >= 0 ? 
+                                '<i class="fas fa-hand-holding-usd mr-1"></i>' : 
+                                '<i class="fas fa-hand-holding-heart mr-1"></i>'}
+                            ${balance >= 0 ? 'Gets back SAR' : 'Owes SAR'}${Math.abs(balance).toFixed(2)}
+                        </span>
+                    `;
+                    
+                    summaryList.appendChild(balanceElement);
+                });
+                
+                // Add settlement suggestions if needed
+                const settlements = calculateSettlements(balances);
+                if (settlements.length > 0) {
+                    const settlementHeader = document.createElement('h3');
+                    settlementHeader.className = 'font-medium text-gray-800 mt-4 mb-2 flex items-center';
+                    settlementHeader.innerHTML = `
+                        <i class="fas fa-exchange-alt mr-2 text-primary-600"></i>
+                        Suggested Settlements
+                    `;
+                    summaryList.appendChild(settlementHeader);
+                    
+                    settlements.forEach(settlement => {
+                        const settlementElement = document.createElement('div');
+                        settlementElement.className = 'text-sm bg-blue-50 p-3 rounded-lg border border-blue-100 mb-2 flex items-center';
+                        settlementElement.innerHTML = `
+                            <div class="flex-1">
+                                <span class="font-medium">${settlement.from}</span> 
+                                <i class="fas fa-arrow-right mx-1 text-blue-500"></i> 
+                                <span class="font-medium">${settlement.to}</span>
+                            </div>
+                            <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
+                                SAR${settlement.amount.toFixed(2)}
+                            </span>
+                        `;
+                        summaryList.appendChild(settlementElement);
+                    });
+                }
+            }
+            
+            function calculateBalances() {
+                const balances = {};
+                
+                // Initialize balances
+                members.forEach(member => {
+                    balances[member.name] = 0;
+                });
+                
+                // Calculate balances
+                expenses.forEach(expense => {
+                    const paidBy = expense.paidBy;
+                    const amount = parseFloat(expense.amount);
+                    const splitCount = expense.splitBetween.length;
+                    const perPersonShare = amount / splitCount;
+                    
+                    // Add to payer's balance
+                    balances[paidBy] += amount;
+                    
+                    // Subtract from each participant
+                    expense.splitBetween.forEach(participant => {
+                        balances[participant] -= perPersonShare;
+                    });
+                });
+                
+                return balances;
+            }
+            
+            function calculateSettlements(balances) {
+                const settlements = [];
+                const people = Object.keys(balances).map(name => ({
+                    name,
+                    balance: balances[name]
+                }));
+                
+                // Sort by balance (ascending)
+                people.sort((a, b) => a.balance - b.balance);
+                
+                let i = 0;
+                let j = people.length - 1;
+                
+                while (i < j) {
+                    const debtor = people[i];
+                    const creditor = people[j];
+                    
+                    const debt = -debtor.balance;
+                    const credit = creditor.balance;
+                    
+                    if (debt > credit) {
+                        // Debt is larger than credit
+                        if (credit > 0.01) { // Ignore very small amounts
+                            settlements.push({
+                                from: debtor.name,
+                                to: creditor.name,
+                                amount: credit
+                            });
+                        }
+                        debtor.balance += credit;
+                        creditor.balance = 0;
+                        j--;
+                    } else if (debt < credit) {
+                        // Credit is larger than debt
+                        if (debt > 0.01) { // Ignore very small amounts
+                            settlements.push({
+                                from: debtor.name,
+                                to: creditor.name,
+                                amount: debt
+                            });
+                        }
+                        creditor.balance -= debt;
+                        debtor.balance = 0;
+                        i++;
+                    } else {
+                        // Exactly equal
+                        if (debt > 0.01) { // Ignore very small amounts
+                            settlements.push({
+                                from: debtor.name,
+                                to: creditor.name,
+                                amount: debt
+                            });
+                        }
+                        debtor.balance = 0;
+                        creditor.balance = 0;
+                        i++;
+                        j--;
+                    }
+                }
+                
+                return settlements;
+            }
+            
+            // Event listeners
+            addMemberBtn.addEventListener('click', function() {
+                addMemberForm.classList.toggle('hidden');
+                if (!addMemberForm.classList.contains('hidden')) {
+                    newMemberName.focus();
+                }
+            });
+            
+            saveMemberBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const name = newMemberName.value.trim();
+                
+                if (name && !members.some(m => m.name.toLowerCase() === name.toLowerCase())) {
+                    members.push({ name });
+                    localStorage.setItem('expenseSplitterMembers', JSON.stringify(members));
+                    newMemberName.value = '';
+                    addMemberForm.classList.add('hidden');
+                    
+                    // Show success feedback
+                    const feedback = document.createElement('div');
+                    feedback.className = 'bg-green-100 text-green-800 p-2 rounded text-sm mt-2 flex items-center animate-fade-in';
+                    feedback.innerHTML = `
+                        <i class="fas fa-check-circle mr-1"></i>
+                        ${name} added successfully!
+                    `;
+                    addMemberForm.parentNode.insertBefore(feedback, addMemberForm.nextSibling);
+                    
+                    setTimeout(() => {
+                        feedback.classList.remove('animate-fade-in');
+                        feedback.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                        setTimeout(() => feedback.remove(), 300);
+                    }, 2000);
+                    
+                    renderMembers();
+                } else if (!name) {
+                    alert('Please enter a name');
+                } else {
+                    alert('Roommate with this name already exists');
+                }
+            });
+            
+            // Delete member
+            membersList.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-member')) {
+                    const index = e.target.closest('.delete-member').getAttribute('data-index');
+                    if (confirm(`Remove ${members[index].name} from your roommates? This will also remove all their related expenses.`)) {
+                        // Remove member
+                        const removedMember = members.splice(index, 1)[0];
+                        
+                        // Remove expenses where this member was involved
+                        expenses = expenses.filter(expense => {
+                            // Check if this member was involved in the expense
+                            const wasPayer = expense.paidBy === removedMember.name;
+                            const wasParticipant = expense.splitBetween.includes(removedMember.name);
+                            
+                            return !wasPayer && !wasParticipant;
+                        });
+                        
+                        localStorage.setItem('expenseSplitterMembers', JSON.stringify(members));
+                        localStorage.setItem('expenseSplitterExpenses', JSON.stringify(expenses));
+                        renderMembers();
+                        renderExpenses();
+                    }
+                }
+            });
+            
+            // Add expense (modal form)
+            expenseForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const description = document.getElementById('expenseDescription').value.trim();
+                const amount = parseFloat(document.getElementById('expenseAmount').value);
+                const paidBy = document.getElementById('paidBy').value;
+                const date = document.getElementById('expenseDate').value || new Date().toISOString().split('T')[0];
+                
+                // Get selected members for split
+                const splitCheckboxes = document.querySelectorAll('input[name="splitMembers"]:checked');
+                const splitBetween = Array.from(splitCheckboxes).map(cb => cb.value);
+                
+                if (splitBetween.length === 0) {
+                    alert('Please select at least one roommate to split with');
+                    return;
+                }
+                
+                // Add expense
+                expenses.unshift({
+                    description,
+                    amount,
+                    paidBy,
+                    splitBetween,
+                    date,
+                    dateAdded: new Date().toISOString()
+                });
+                
+                localStorage.setItem('expenseSplitterExpenses', JSON.stringify(expenses));
+                
+                // Close modal
+                expenseModal.classList.add('hidden');
+                
+                // Show success toast
+                showToast('Expense added successfully!', 'success');
+                
+                renderExpenses();
+            });
+            
+            // Quick add expense (mobile form)
+            quickExpenseForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (members.length === 0) {
+                    alert('Please add roommates first');
+                    return;
+                }
+                
+                const description = document.getElementById('quickExpenseDescription').value.trim();
+                const amount = parseFloat(document.getElementById('quickExpenseAmount').value);
+                const paidBy = members[0].name; // Default to first member
+                
+                // Use all members for split
+                const splitBetween = members.map(m => m.name);
+                
+                // Add expense
+                expenses.unshift({
+                    description,
+                    amount,
+                    paidBy,
+                    splitBetween,
+                    date: new Date().toISOString().split('T')[0],
+                    dateAdded: new Date().toISOString()
+                });
+                
+                localStorage.setItem('expenseSplitterExpenses', JSON.stringify(expenses));
+                
+                // Reset form
+                quickExpenseForm.reset();
+                
+                // Show success toast
+                showToast('Expense added successfully!', 'success');
+                
+                renderExpenses();
+            });
+            
+            // Delete expense
+            expensesList.addEventListener('click', function(e) {
+                if (e.target.closest('.delete-expense')) {
+                    const index = e.target.closest('.delete-expense').getAttribute('data-index');
+                    if (confirm('Delete this expense?')) {
+                        expenses.splice(index, 1);
+                        localStorage.setItem('expenseSplitterExpenses', JSON.stringify(expenses));
+                        
+                        // Show feedback
+                        showToast('Expense deleted', 'info');
+                        
+                        renderExpenses();
+                    }
+                }
+            });
+            
+            // Filter expenses
+            filterAll.addEventListener('click', function() {
+                filterAll.classList.add('bg-primary-100', 'text-primary-800');
+                filterThisMonth.classList.remove('bg-primary-100', 'text-primary-800');
+                filterThisMonth.classList.add('bg-gray-100', 'text-gray-800');
+                renderExpenses('all');
+            });
+            
+            filterThisMonth.addEventListener('click', function() {
+                filterThisMonth.classList.add('bg-primary-100', 'text-primary-800');
+                filterAll.classList.remove('bg-primary-100', 'text-primary-800');
+                filterAll.classList.add('bg-gray-100', 'text-gray-800');
+                renderExpenses('month');
+            });
+            
+            // Refresh summary
+            refreshSummary.addEventListener('click', function() {
+                renderSummary();
+                showToast('Summary refreshed', 'info');
+            });
+            
+            // Modal controls
+            quickAddExpenseBtn.addEventListener('click', function() {
+                if (members.length === 0) {
+                    alert('Please add roommates first');
+                    return;
+                }
+                expenseModal.classList.remove('hidden');
+                document.getElementById('expenseDescription').focus();
+            });
+            
+            closeModal.addEventListener('click', function() {
+                expenseModal.classList.add('hidden');
+            });
+            
+            cancelExpense.addEventListener('click', function() {
+                expenseModal.classList.add('hidden');
+            });
+            
+            // Click outside modal to close
+            expenseModal.addEventListener('click', function(e) {
+                if (e.target === expenseModal) {
+                    expenseModal.classList.add('hidden');
+                }
+            });
+            
+            // Helper function to show toast messages
+            function showToast(message, type = 'info') {
+                const toast = document.createElement('div');
+                toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white flex items-center animate-fade-in ${
+                    type === 'success' ? 'bg-green-500' : 
+                    type === 'error' ? 'bg-red-500' : 
+                    'bg-primary-500'
+                }`;
+                toast.innerHTML = `
+                    <i class="fas ${
+                        type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 
+                        'fa-info-circle'
+                    } mr-2"></i>
+                    ${message}
+                `;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.classList.remove('animate-fade-in');
+                    toast.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+            
+            // Set default date to today
+            document.getElementById('expenseDate').valueAsDate = new Date();
+            
+            // Initial render
+            renderMembers();
+            renderExpenses();
+        });
+    </script>
+</body>
+</html>
